@@ -1,6 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-
- AVLTreeTest.hs
+ BSTreeTest.hs
 
  Copyright 2014 Sebastien Soudan
 
@@ -17,26 +17,17 @@
  limitations under the License.
 
 -}
-module AVLTreeTest where
+module BSTreeTest where
 
-import           AVLTree
+import           BSTree
 import qualified Data.Foldable        as F
 import           Data.Monoid
 import           Test.QuickCheck.Test
 
 prop_test :: Bool
-prop_test = let (tree :: AVLTree Integer) = buildTree [1,3,4,5]
-                (tree2 :: AVLTree Integer) = insertTree 6 tree
+prop_test = let (tree :: BSTree Integer) = buildTree [1,3,4,5]
+                (tree2 :: BSTree Integer) = insertTree 6 tree
              in (not (6 `elemTree` tree)) && (6 `elemTree` tree2)
-
-prop_height :: [Integer] -> Bool
-prop_height (xs :: [Integer]) = getAll $ treemap (\n -> All $ getHeight n == computeHeight n) $ buildTree xs
-
-
--- TODO This one is incorrect
---prop_rotations :: [Integer] -> Bool
---prop_rotations (xs :: [Integer]) = tree == (leftRotate . rightRotate) tree && tree == (rightRotate . leftRotate) tree
---                      where tree = buildTree xs
 
 prop_insert_integer :: [Integer] -> Bool
 prop_insert_integer (xs :: [Integer])  = let t = buildTree xs
@@ -53,9 +44,5 @@ prop_sort (xs :: [Integer]) = let sorted = sort xs
                   checkSorted (x:y:xs) = (All $ x < y) `mappend` checkSorted (y:xs)
                   checkSorted [] = All True
                   checkSorted (x:[]) = All True
-
-prop_bf :: [Integer] -> Bool
-prop_bf (xs :: [Integer]) = getAll $ treemap checkBf (foldr insertTree EmptyTree xs)
-
 
 

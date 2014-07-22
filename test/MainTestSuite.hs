@@ -20,7 +20,8 @@ module Main (
     main
  ) where
 
-import           AVLTreeTest
+import qualified AVLTreeTest
+import qualified BSTreeTest
 import           Test.Framework
 import           Test.Framework.Providers.QuickCheck2
 import Test.Framework.Options
@@ -31,14 +32,23 @@ main = defaultMain tests
 
 tests :: [Test]
 tests = [
-          testGroup "simple" 
-            [ testProperty "rotations" prop_rotations
-            , testProperty "insert - Integer" prop_insert_integer
-            , testProperty "insert - Float" prop_insert_float
+          testGroup "AVLTree: simple" 
+            [ testProperty "insert" AVLTreeTest.prop_test
+            --, testProperty "rotations" prop_rotations
+            , testProperty "insert - Integer" AVLTreeTest.prop_insert_integer
+            , testProperty "insert - Float" AVLTreeTest.prop_insert_float
             ]
-        , testGroup "complex" 
-            [ testProperty "Height" prop_height
-            , testProperty "Balance factor" prop_bf
-            , testProperty "Sort" prop_sort
+        , testGroup "AVLTree: complex" 
+            [ testProperty "Height" AVLTreeTest.prop_height
+            , testProperty "Balance factor" AVLTreeTest.prop_bf
+            , testProperty "Sort" AVLTreeTest.prop_sort
+            ]
+        , testGroup "BSTree: simple" 
+            [ testProperty "insert" BSTreeTest.prop_test
+            , testProperty "insert - Integer" BSTreeTest.prop_insert_integer
+            , testProperty "insert - Float" BSTreeTest.prop_insert_float
+            ]
+        , testGroup "BSTree: complex" 
+            [ testProperty "Sort" BSTreeTest.prop_sort
             ]
         ]
