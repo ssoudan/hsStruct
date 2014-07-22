@@ -33,6 +33,11 @@ instance Functor BSTree where
      fmap _ EmptyTree = EmptyTree
      fmap f (Node a l r) = Node (f a) (fmap f l) (fmap f r)
 
+treemap :: (Monoid m) => (BSTree a -> m) -> BSTree a -> m
+treemap _ EmptyTree = mempty
+treemap f n@(Node _ l r) = treemap f l `mappend` f n `mappend` treemap f r
+
+------------------------------------------------------------------------------------
 
 insertTree :: (Eq a, Ord a) => a -> BSTree a -> BSTree a
 insertTree a EmptyTree = Node a EmptyTree EmptyTree
@@ -53,4 +58,4 @@ sort :: Ord a => [a] -> [a]
 sort xs = F.foldMap (: []) $ buildTree xs
 
 size :: BSTree a -> Integer
-size a = F.sum $ fmap (const 1) a
+size a = getSum $ F.foldMap (const $ Sum 1) a

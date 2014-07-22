@@ -47,6 +47,8 @@ treemap _ EmptyTree = mempty
 treemap f l@(Leaf _) = f l
 treemap f n@(Node _ _ l r) = treemap f l `mappend` f n `mappend` treemap f r
 
+------------------------------------------------------------------------------------
+
 singleton :: a -> AVLTree a
 singleton = Leaf
 
@@ -170,5 +172,5 @@ sort :: Ord a => [a] -> [a]
 sort xs = F.foldMap (: []) $ buildTree xs
 
 size :: AVLTree a -> Integer
-size a = F.sum $ fmap (const 1) a
+size a = getSum $ F.foldMap (const $ Sum 1) a
       
