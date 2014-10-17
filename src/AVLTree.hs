@@ -1,3 +1,4 @@
+{-# LANGUAGE RankNTypes #-}
 {-
  AVLTree.hs
 
@@ -62,6 +63,7 @@ computeHeight EmptyTree = 0
 computeHeight (Leaf _) = 1
 computeHeight (Node _ _ l r) = 1 + max (computeHeight l) (computeHeight r)
 
+trace :: forall t a. t -> a -> a
 trace _ = id
 
 -- buildTree [1,24,2,5,7,34,9]
@@ -110,7 +112,6 @@ leftRotate (Node _ a l (Node _ ra rl rr)) = trace "left" (
 leftRotate t = t
 
 
-
 insertTree :: (Eq a, Ord a) => a -> AVLTree a -> AVLTree a
 insertTree x EmptyTree = singleton x
 insertTree x (Leaf a)
@@ -123,22 +124,24 @@ insertTree x (Node height a left right)
     | x > a = createNode a left (insertTree x right)
     where
       createNode :: a -> AVLTree a -> AVLTree a -> AVLTree a
-      createNode a l r = let hr = getHeight r
+      createNode d l r = let hr = getHeight r
                              hl = getHeight l
                              bf = hl-hr
                              nh = 1 + max hl hr
                           in case () of _
-                                         | bf <= -2 -> leftRotate (Node nh a l (rightRotateCond r))
-                                         | bf >= 2 -> rightRotate (Node nh a (leftRotateCond l) r)
-                                         | otherwise -> Node nh a l r
+                                         | bf <= -2 -> leftRotate (Node nh d l (rightRotateCond r))
+                                         | bf >= 2 -> rightRotate (Node nh d (leftRotateCond l) r)
+                                         | otherwise -> Node nh d l r
       leftRotateCond :: AVLTree a -> AVLTree a
-      leftRotateCond n@(Node{}) = case computeBf n of -1 -> leftRotate n
-                                                      _ -> n
+      leftRotateCond n@(Node{}) = case computeBf n of 
+                                       -1 -> leftRotate n
+                                       _  -> n
       leftRotateCond t = t
 
       rightRotateCond :: AVLTree a -> AVLTree a
-      rightRotateCond n@(Node{}) = case computeBf n of 1 -> rightRotate n
-                                                       _ -> n
+      rightRotateCond n@(Node{}) = case computeBf n of 
+                                        1 -> rightRotate n
+                                        _ -> n
       rightRotateCond t = t
       computeBf :: AVLTree a -> Integer
       computeBf (Node _ _ l r) = let hl = getHeight l
@@ -151,8 +154,13 @@ insertTree x (Node height a left right)
 -- | remove an element from the tree
 -- TODO
 --deleteTree :: (Eq a, Ord a) => a -> AVLTree a -> AVLTree a
---deleteTree x t = undefined
-
+--deleteTree _ EmptyTree = EmptyTree
+--deleteTree x l@(Leaf a) | x == a    = EmptyTree
+--                          otherwise = l
+--deleteTree x (Node _ a l r)
+--                  | x == a = True
+--                  | x < a = deleteTree x l
+--                  | x > a = deleteTree x r
 
 elemTree :: (Eq a, Ord a) => a -> AVLTree a -> Bool
 elemTree _ EmptyTree = False

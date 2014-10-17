@@ -22,6 +22,7 @@ module Main (
 
 import qualified AVLTreeTest
 import qualified BSTreeTest
+import qualified BatchedQueueTest
 import           Test.Framework
 import           Test.Framework.Providers.QuickCheck2
 import Test.Framework.Options
@@ -50,5 +51,11 @@ tests = [
             ]
         , testGroup "BSTree: complex" 
             [ testProperty "Sort" BSTreeTest.prop_sort
+            ]
+        , testGroup "BatchedQueue: simple" 
+            [ testProperty "insert" BatchedQueueTest.prop_test
+            , testProperty "build" BatchedQueueTest.prop_build
+            , testProperty "empty isEmpty" BatchedQueueTest.prop_empty
+            , testProperty "head - tail" BatchedQueueTest.prop_head_tail
             ]
         ]
