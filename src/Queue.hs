@@ -20,9 +20,12 @@ import           Data.Monoid
 class Queue q where
     empty :: q a
     isEmpty :: q a -> Bool
+
     snoc :: q a -> a -> q a
     head :: q a -> a
     tail :: q a -> q a
+
+    size :: q a -> Int
 
 instance Queue a => F.Foldable a where
      foldMap f q = if isEmpty q
@@ -36,7 +39,7 @@ instance Queue a => Functor a where
                     then 
                         empty
                     else
-                        snoc (fmap f (Queue.tail q)) (f (Queue.head q))      
+                        snoc (fmap f (Queue.tail q)) (f (Queue.head q))
 
 -- 
 -- toList :: (Queue q, F.Foldable q) => q a -> [a]

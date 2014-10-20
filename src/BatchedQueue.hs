@@ -38,21 +38,29 @@ data BatchedQueue a = Q [a] [a] deriving (Show)
 -- tail     O(1)       O(n)
 -- snoc     O(1)       O(1)
 -- isEmpty  O(1)       O(1)
+-- size     O(n)       O(n) [need to change size by storing th size]
 --
 instance Queue BatchedQueue where
+    -- empty
     empty = (Q [] [])
+    -- isEmpty
     isEmpty (Q [] _) = True
     isEmpty _ = False
+    -- snoc
     snoc (Q [] _) x = (Q [x] [])    -- empty f => empty r
-    snoc (Q f r) x = (Q f (x:r))      -- f is not empty
+    snoc (Q f r) x = (Q f (x:r))    -- f is not empty
+    -- head
     head (Q [] _) = error "empty queue"
     head (Q (x:_) _) = x
+    -- tail
     tail (Q [] _) = error "empty queue"
     tail (Q (_:[]) r) = Q (reverse r) []
     tail (Q (_:f) r) = Q f r
         --where
         --checkf :: BatchedQueue a -> BatchedQueue a
         --checkf q = undefined
+    size (Q [] _) = 0
+    size (Q f r) = length f + length r -- costly implementation
 
 buildBatchedQueue :: [a] -> BatchedQueue a
 buildBatchedQueue = foldl snoc empty

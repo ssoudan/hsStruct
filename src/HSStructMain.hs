@@ -22,6 +22,8 @@ module Main where
 
 import qualified AVLTree
 import qualified BSTree
+import qualified BatchedQueue
+import qualified Queue
 import           Data.Digest.Murmur32
 import           Microbench
 
@@ -30,6 +32,10 @@ import           Microbench
 
 --sum2 :: Int -> Int
 --sum2 n = foldl (+) 0 [1..n]
+
+buildBatchedQueue :: Int -> BatchedQueue.BatchedQueue Integer
+buildBatchedQueue n = let rs = [ (toInteger . asWord32 . hash32) m | m <- [1..n] ]
+                  in BatchedQueue.buildBatchedQueue rs
 
 buildAVLTree :: Int -> AVLTree.AVLTree Integer
 buildAVLTree n = let rs = [ (toInteger . asWord32 . hash32) m | m <- [1..n] ]
@@ -62,4 +68,11 @@ main = do
     putStrLn $ "BSTree size: " ++ show (BSTree.size bstree)
     microbench "searchAVLTree " $ searchAVLTree avltree
     microbench "searchBSTree " $ searchBSTree bstree
-
+    ----
+    putStrLn "Testing performance of 'buildQueue'"
+    microbench "buildBatchedQueue " buildBatchedQueue
+    putStrLn "Testing performance of 'head' in pre-built queue"
+    let rs = [ (toInteger . asWord32 . hash32) m | (m :: Integer) <- [1..1000000] ]
+        batchedQueue = BatchedQueue.buildBatchedQueue rs
+    putStrLn $ "BatchedQueue size: " ++ show (Queue.size batchedQueue)
+    --microbench "BatchedQueue.head " $ Queue.head batchedQueue
