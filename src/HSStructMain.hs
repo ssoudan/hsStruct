@@ -23,6 +23,8 @@ module Main where
 import qualified AVLTree
 import qualified BSTree
 import qualified BatchedQueue
+import qualified BatchedDequeue
+import qualified Dequeue
 import qualified Queue
 import           Data.Digest.Murmur32
 import           Microbench
@@ -36,6 +38,10 @@ import           Microbench
 buildBatchedQueue :: Int -> BatchedQueue.BatchedQueue Integer
 buildBatchedQueue n = let rs = [ (toInteger . asWord32 . hash32) m | m <- [1..n] ]
                   in BatchedQueue.buildBatchedQueue rs
+
+buildBatchedDequeue :: Int -> BatchedDequeue.BatchedDequeue Integer
+buildBatchedDequeue n = let rs = [ (toInteger . asWord32 . hash32) m | m <- [1..n] ]
+                  in BatchedDequeue.buildBatchedDequeue rs
 
 buildAVLTree :: Int -> AVLTree.AVLTree Integer
 buildAVLTree n = let rs = [ (toInteger . asWord32 . hash32) m | m <- [1..n] ]
@@ -76,3 +82,11 @@ main = do
         batchedQueue = BatchedQueue.buildBatchedQueue rs
     putStrLn $ "BatchedQueue size: " ++ show (Queue.size batchedQueue)
     --microbench "BatchedQueue.head " $ Queue.head batchedQueue
+    ----
+    putStrLn "Testing performance of 'buildDequeue'"
+    microbench "buildBatchedDequeue " buildBatchedDequeue
+    putStrLn "Testing performance of 'head' in pre-built dequeue"
+    let rs = [ (toInteger . asWord32 . hash32) m | (m :: Integer) <- [1..1000000] ]
+        batchedDequeue = BatchedDequeue.buildBatchedDequeue rs
+    putStrLn $ "BatchedDequeue size: " ++ show (Dequeue.size batchedDequeue)
+    --microbench "BatchedDequeue.head " $ Dequeue.head batchedDequeue
