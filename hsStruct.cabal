@@ -17,7 +17,7 @@ extra-source-files:  README.md
 cabal-version:       >=1.10
 
 library
-  exposed-modules:   AVLTree, BSTree, Queue, BatchedQueue, Dequeue
+  exposed-modules:   AVLTree, BSTree, Queue, BatchedQueue, Dequeue, BatchedDequeue
   -- other-modules:       
   -- other-extensions:    
   build-depends:       base >=4.6 && <4.9

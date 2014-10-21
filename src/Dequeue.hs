@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, UndecidableInstances #-}
 {- |
 Module      :  Dequeue
 Description :  ... 
@@ -13,8 +13,11 @@ Portability :  portable
 
 module Dequeue where
 
+import qualified Data.Foldable as F
+import           Data.Monoid
+
 -- Double-ended queue:
--- [Okasaki, p. ??]
+-- [Purely functional Data Structures, Okasaki, p.44]
 --
 -- ML signature:
 -- signature DEQUE = 
@@ -51,43 +54,17 @@ class Dequeue dq where
 
     size :: dq a -> Int
 
+instance Dequeue a => F.Foldable a where
+     foldMap f q = if isEmpty q
+                    then
+                        mempty
+                    else
+                        f (Dequeue.head q) `mappend` F.foldMap f (Dequeue.tail q)
 
-data BatchedDequeue a = BDQ [a] [a] deriving (Show)
-
-splitHalf :: forall a. [a] -> ([a], [a])
-splitHalf l = splitAt ((length l + 1) `div` 2) l
-
--- The idea is to maintain the invariant saying that both f and r are not empty when there is at least 2 elements
-instance Dequeue BatchedDequeue where
-    empty = (BDQ [] [])
-    isEmpty (BDQ [] []) = True
-    isEmpty _ = False
-
-    cons x (BDQ [] r) = BDQ [x] r       -- also account for '[] []' case
-    cons x (BDQ [f] []) = BDQ [x] [f]   -- for the sake of the invariant 
-    cons x (BDQ f r) = BDQ (x:f) r      -- f and r are not empty
-    head (BDQ [] []) = error "empty queue" 
-    head (BDQ (x:_) _) = x
-    --head (BDQ [] r) = ..              -- not supposed to happen
-    tail (BDQ [] []) = error "empty queue"
-    tail (BDQ [_] r) = let (r1, r2) = splitHalf r   -- that the case were we want to split and 
-                        in (BDQ (reverse r2) r1)    -- reverse half of the other queue
-    tail (BDQ (_:f) r) = BDQ f r 
-
-    snoc (BDQ f []) x = BDQ f [x]       -- also account for '[] []' case
-    snoc (BDQ [] [r]) x = BDQ [x] [r]   -- for the sake of the invariant
-    snoc (BDQ f r) x = BDQ f (x:r)      -- f and r are not empty
-    last (BDQ [] []) = error "empty queue"
-    last (BDQ _ (r:_)) = r
-    --last (BDQ _ []) = ..              -- not supposed to happen
-    init (BDQ [] []) = error "empty queue"
-    init (BDQ f [_]) = let (f1, f2) = splitHalf f
-                        in (BDQ f1 (reverse f2))
-    init (BDQ f (_:r)) = (BDQ f r)
-
-    size (BDQ [] []) = 0                    -- TODO fix this crapy implementation
-    size (BDQ f r) = length f + length r    -- TODO fix this crapy implementation
-
-
-
+instance Dequeue a => Functor a where
+     fmap f q = if isEmpty q 
+                    then 
+                        empty
+                    else
+                        snoc (fmap f (Dequeue.tail q)) (f (Dequeue.head q))
 
