@@ -71,6 +71,7 @@ tests = [
             [ testProperty "empty isEmpty" LeftistHeapTest.prop_empty
             , testProperty "findMin" (LeftistHeapTest.prop_findMin :: [Int] -> Bool)
             , testProperty "merge - findMin" (LeftistHeapTest.prop_merge_findMin :: [Int] -> [Int] -> Bool)
+            , testProperty "deleteMin" (LeftistHeapTest.prop_deleteMin :: [Int] -> Bool)
             , testProperty "insert" (LeftistHeapTest.prop_insert_not_empty :: [Int] -> Bool)
             , testProperty "P1" (LeftistHeapTest.prop_P1 :: [Int] -> Bool)
             ]
