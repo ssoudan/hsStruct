@@ -24,6 +24,8 @@ import qualified AVLTreeTest
 import qualified BSTreeTest
 import qualified BatchedQueueTest
 import qualified BatchedDequeueTest
+import qualified LeftistHeapTest
+
 import           Test.Framework
 import           Test.Framework.Providers.QuickCheck2
 import Test.Framework.Options
@@ -64,5 +66,12 @@ tests = [
             , testProperty "build" BatchedDequeueTest.prop_build
             , testProperty "empty isEmpty" BatchedDequeueTest.prop_empty
             , testProperty "head - tail" BatchedDequeueTest.prop_head_tail
+            ]
+        , testGroup "LeftistHeap: simple" 
+            [ testProperty "empty isEmpty" LeftistHeapTest.prop_empty
+            , testProperty "findMin" (LeftistHeapTest.prop_findMin :: [Int] -> Bool)
+            , testProperty "merge - findMin" (LeftistHeapTest.prop_merge_findMin :: [Int] -> [Int] -> Bool)
+            , testProperty "insert" (LeftistHeapTest.prop_insert_not_empty :: [Int] -> Bool)
+            , testProperty "P1" (LeftistHeapTest.prop_P1 :: [Int] -> Bool)
             ]
         ]

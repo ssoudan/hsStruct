@@ -29,12 +29,6 @@ import qualified Queue
 import           Data.Digest.Murmur32
 import           Microbench
 
---sum1 :: Int -> Int
---sum1 n = sum [1..n]
-
---sum2 :: Int -> Int
---sum2 n = foldl (+) 0 [1..n]
-
 buildBatchedQueue :: Int -> BatchedQueue.BatchedQueue Integer
 buildBatchedQueue n = let rs = [ (toInteger . asWord32 . hash32) m | m <- [1..n] ]
                   in BatchedQueue.buildBatchedQueue rs

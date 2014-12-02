@@ -61,4 +61,5 @@ instance Queue BatchedQueue where
     size (Q f r)        = length f + length r -- TODO costly implementation
 
 buildBatchedQueue :: [a] -> BatchedQueue a
-buildBatchedQueue = foldl snoc empty
+buildBatchedQueue l = foldl snoc empty l
+
