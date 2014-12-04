@@ -18,7 +18,8 @@ cabal-version:       >=1.10
 
 library
   exposed-modules:   AVLTree, BSTree, Queue, BatchedQueue, Dequeue,
-                     BatchedDequeue, RDG, Graph, Heap, LeftistHeap
+                     BatchedDequeue, RDG, Graph, Heap, LeftistHeap, 
+                     BinomialHeap
   -- other-modules:       
   -- other-extensions:    
   build-depends:     base >=4.6 && <4.9, 
