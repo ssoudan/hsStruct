@@ -18,15 +18,18 @@
 -}
 module BinomialHeap where
 
-import           Data.List (minimumBy, delete)
+import qualified Data.Foldable as F
+import           Data.List     (delete, minimumBy, sort)
+import           Data.Monoid
 import           Heap
-import Debug.Trace
+
+
 data Tree a = Node a [Tree a] deriving Show
 
 getValue :: Tree a -> a
 getValue (Node a _) = a
 
-data RankedTree a = RankedTree { getRank :: Int
+data RankedTree a = RankedTree { getRank  :: Int
                                 , getTree :: Tree a
                                 } deriving Show
 
@@ -36,7 +39,7 @@ getRankedTrees :: BinomialHeap a -> [RankedTree a]
 getRankedTrees (BinomialHeap ts) = ts
 
 -- for our purpose comparing on the rank is enough since there will be only one tree for each rank at max
-instance Eq (RankedTree a) where 
+instance Eq (RankedTree a) where
     (RankedTree rk1 _) == (RankedTree rk2 _) = rk1 == rk2
 
 
@@ -58,10 +61,9 @@ hrank [] = 0
 hrank xs = getRank . head $ xs
 
 mergeTrees :: Ord a => [(RankedTree a)] -> [(RankedTree a)] -> [(RankedTree a)]
-mergeTrees [] b = trace "mergeTrees [] b" b
-mergeTrees a [] = trace "mergeTrees a []" a
-mergeTrees a@(x:xs) b@(y:ys) = trace "mergeTrees a b" $
-                                let rankX = getRank x
+mergeTrees [] b = b
+mergeTrees a [] = a
+mergeTrees a@(x:xs) b@(y:ys) =  let rankX = getRank x
                                     rankY = getRank y
                                 in case () of _ | rankX == rankY -> -- here we need to check who will become the
                                                                     -- 'leaf', then 'link' the 2 trees, next check
@@ -90,8 +92,8 @@ mergeTrees a@(x:xs) b@(y:ys) = trace "mergeTrees a b" $
                                                 | otherwise      -> (y:(mergeTrees a  ys))
 
 
-fromList :: Ord a => [a] -> BinomialHeap a
-fromList xs = foldr Heap.insert empty xs
+btFromList :: Ord a => [a] -> BinomialHeap a
+btFromList xs = foldr Heap.insert empty xs
 
 singleton :: a -> BinomialHeap a
 singleton a = (BinomialHeap [RankedTree 0 (Node a [])])
@@ -137,3 +139,81 @@ instance Heap BinomialHeap where
     -- deleteMin :: Ord a => h a -> h a
     deleteMin = BinomialHeap.deleteMin
 
+
+
+--
+-- Because findMin is O(log n) in BinomialHeap, we wrap it in SavedMinBinomialHeap which recall the value of minimum
+-- or compute it accross already complex operations (O(log n)) so that findMin becomes O(1)
+--
+data SavedMinBinomialHeap a = SavedMinBinomialHeap { getMin :: a, getHeap :: BinomialHeap a }
+                            | EmptyHeap deriving Show
+
+s2b :: SavedMinBinomialHeap a -> BinomialHeap a
+s2b EmptyHeap = Heap.empty
+
+b2s :: a -> BinomialHeap a -> SavedMinBinomialHeap a
+b2s m h = SavedMinBinomialHeap m h
+
+fromList :: Ord a => [a] -> SavedMinBinomialHeap a
+fromList xs = let h = btFromList xs
+               in if (isEmpty h) then
+                    EmptyHeap
+                  else
+                    b2s (Heap.findMin h) h
+
+instance Heap SavedMinBinomialHeap where
+
+    -- O(1)
+    -- empty :: h a
+    empty = EmptyHeap
+
+    -- O(1)
+    -- isEmpty :: h a -> Bool
+    isEmpty EmptyHeap = True
+    isEmpty _ = False
+
+    -- O(1) amortized (see [Okasaki p. 45])
+    -- O(log n) worst case
+    -- insert :: Ord a => a -> h a -> h a
+    insert a EmptyHeap = b2s a (BinomialHeap.merge (singleton a) (Heap.empty))
+    insert a (SavedMinBinomialHeap m t) = b2s (min a m) (BinomialHeap.merge (singleton a) t)
+
+    -- O(log n)
+    -- merge :: Ord a => h a -> h a -> h a
+    merge EmptyHeap (SavedMinBinomialHeap m t)= b2s m t
+    merge (SavedMinBinomialHeap m t) EmptyHeap = b2s m t
+    merge (SavedMinBinomialHeap m t) (SavedMinBinomialHeap m2 t2) = b2s (min m m2) (BinomialHeap.merge t t2)
+
+    -- O(1)
+    -- findMin :: Ord a => h a -> a
+    findMin (EmptyHeap) = error "undefined"
+    findMin (SavedMinBinomialHeap m _) = m
+
+    -- O(log n)
+    -- deleteMin :: Ord a => h a -> h a
+    deleteMin (EmptyHeap) = error "undefined"
+    deleteMin (SavedMinBinomialHeap _ t) = let t' = BinomialHeap.deleteMin t
+                                            in if (Heap.isEmpty t') then
+                                                EmptyHeap
+                                             else
+                                                let m' = Heap.findMin t'
+                                                 in b2s m' t'
+
+--
+-- Check properties on the heap
+--
+checkP1OnATree :: Ord a => a -> Tree a -> Bool
+checkP1OnATree m (Node a []) = a >= m
+checkP1OnATree m (Node a (t:ts)) = a >= m && checkP1OnATree a t && childOk
+                            where childOk = getAll $ F.foldMap (All . (checkP1OnATree a)) ts
+
+checkP1OnSavedMinBinomialHeap :: Ord a => SavedMinBinomialHeap a -> Bool
+checkP1OnSavedMinBinomialHeap EmptyHeap = True
+checkP1OnSavedMinBinomialHeap (SavedMinBinomialHeap m (BinomialHeap ts)) = getAll $ F.foldMap (\(RankedTree _ t) -> All $ checkP1OnATree m t) ts
+
+checkP2OnSavedMinBinomialHeap :: Ord a => SavedMinBinomialHeap a -> Bool
+checkP2OnSavedMinBinomialHeap EmptyHeap = True
+checkP2OnSavedMinBinomialHeap (SavedMinBinomialHeap _ (BinomialHeap ts)) = let ranks = sort $ map getRank ts
+                                                                            in failOnDuplicate (head ranks) (tail ranks)
+                                                                         where failOnDuplicate _ [] = True
+                                                                               failOnDuplicate a (t:ts) = a /= t && failOnDuplicate t ts
