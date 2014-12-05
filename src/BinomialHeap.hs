@@ -18,15 +18,26 @@
 -}
 module BinomialHeap where
 
+import           Data.List (minimumBy, delete)
 import           Heap
+import Debug.Trace
+data Tree a = Node a [Tree a] deriving Show
 
-data Tree a = Node a [Tree a]
+getValue :: Tree a -> a
+getValue (Node a _) = a
 
-data RankedTree  a = RankedTree { getRank :: Int
+data RankedTree a = RankedTree { getRank :: Int
                                 , getTree :: Tree a
-                                }
+                                } deriving Show
 
-data BinomialHeap a = BinomialHeap [(RankedTree a)]
+data BinomialHeap a = BinomialHeap [(RankedTree a)] deriving Show
+
+getRankedTrees :: BinomialHeap a -> [RankedTree a]
+getRankedTrees (BinomialHeap ts) = ts
+
+-- for our purpose comparing on the rank is enough since there will be only one tree for each rank at max
+instance Eq (RankedTree a) where 
+    (RankedTree rk1 _) == (RankedTree rk2 _) = rk1 == rk2
 
 
 -- link two trees of the same order into one of higher order
@@ -42,21 +53,29 @@ merge a@(BinomialHeap _ )   (BinomialHeap []) = a
 merge   (BinomialHeap []) b@(BinomialHeap _ ) = b
 merge   (BinomialHeap xs)   (BinomialHeap ys) = BinomialHeap (mergeTrees xs ys)
 
+hrank :: [RankedTree a] -> Int
+hrank [] = 0
+hrank xs = getRank . head $ xs
+
 mergeTrees :: Ord a => [(RankedTree a)] -> [(RankedTree a)] -> [(RankedTree a)]
-mergeTrees [] b = b
-mergeTrees a [] = a
-mergeTrees a@(x:xs) b@(y:ys) = let rankX = getRank x
-                                   rankY = getRank y
-                                in case () of _ | rankX == rankY -> -- here we need to check who will become the 
-                                                                    -- 'leaf', then 'link' the 2 trees, next check 
+mergeTrees [] b = trace "mergeTrees [] b" b
+mergeTrees a [] = trace "mergeTrees a []" a
+mergeTrees a@(x:xs) b@(y:ys) = trace "mergeTrees a b" $
+                                let rankX = getRank x
+                                    rankY = getRank y
+                                in case () of _ | rankX == rankY -> -- here we need to check who will become the
+                                                                    -- 'leaf', then 'link' the 2 trees, next check
                                                                     -- if there is some room or it will collide and
-                                                                    -- require to apply the merge again with the 
-                                                                    -- tails
-                                                                    let linked = link x y 
+                                                                    -- require to apply the merge again with the
+                                                                    -- tails; note that in case both xs and ys already
+                                                                    -- have a BT of order k+1, we can just prepend the
+                                                                    -- linked BT and let those two BTs be linked to
+                                                                    -- a BT of order k+2 without breaking P2.
+                                                                    let linked = link x y
                                                                         newRank = getRank linked
-                                                                        nextRankX = getRank . head $ xs
-                                                                        nextRankY = getRank . head $ ys
-                                                                     in if newRank /= nextRankX then 
+                                                                        nextRankX = hrank xs
+                                                                        nextRankY = hrank ys
+                                                                     in if newRank /= nextRankX then
                                                                             if newRank /= nextRankY then
                                                                                 linked:(mergeTrees xs ys)
                                                                             else
@@ -71,22 +90,36 @@ mergeTrees a@(x:xs) b@(y:ys) = let rankX = getRank x
                                                 | otherwise      -> (y:(mergeTrees a  ys))
 
 
+fromList :: Ord a => [a] -> BinomialHeap a
+fromList xs = foldr Heap.insert empty xs
+
+singleton :: a -> BinomialHeap a
+singleton a = (BinomialHeap [RankedTree 0 (Node a [])])
+
+
+deleteMin :: Ord a => BinomialHeap a -> BinomialHeap a
+deleteMin (BinomialHeap []) = error "undefined"
+deleteMin (BinomialHeap ts) = let r@(RankedTree rk (Node a sts)) = minimumBy (\tt tt2 -> compare (getValue . getTree $ tt) (getValue . getTree $ tt2)) ts
+                                  subtrees = BinomialHeap (zipWith (\rr tt -> (RankedTree rr tt)) [0,1..(rk-1)] (reverse sts))
+                                  withoutR = BinomialHeap (delete r ts)
+                               in BinomialHeap.merge withoutR subtrees
+
 -- [http://en.wikipedia.org/wiki/Binomial_heap]
 --
 -- A binomial tree is defined recursively:
 -- - A binomial tree of order 0 is a single node
--- - A binomial tree of order k has a root node whose children are roots of 
+-- - A binomial tree of order k has a root node whose children are roots of
 --   binomial trees of orders k−1, k−2, ..., 2, 1, 0 (in this order).
 --
--- Because of its unique structure, a binomial tree of order k can be 
--- constructed from two trees of order k−1 trivially by attaching one of 
--- them as the leftmost child of root of the other one. This feature is 
--- central to the merge operation of a binomial heap, which is its major 
+-- Because of its unique structure, a binomial tree of order k can be
+-- constructed from two trees of order k−1 trivially by attaching one of
+-- them as the leftmost child of root of the other one. This feature is
+-- central to the merge operation of a binomial heap, which is its major
 -- advantage over other conventional heaps.
 
--- P1: Each binomial tree in a heap obeys the minimum-heap property: the key 
+-- P1: Each binomial tree in a heap obeys the minimum-heap property: the key
 --     of a node is greater than or equal to the key of its parent.
--- P2: There can only be either one or zero binomial trees for each order, 
+-- P2: There can only be either one or zero binomial trees for each order,
 --     including zero order.
 instance Heap BinomialHeap where
     -- empty :: h a
@@ -94,11 +127,13 @@ instance Heap BinomialHeap where
     -- isEmpty :: h a -> Bool
     isEmpty (BinomialHeap h) = null h
     -- insert :: Ord a => a -> h a -> h a
-    insert = undefined
+    insert a h = BinomialHeap.merge (singleton a) h
     -- merge :: Ord a => h a -> h a -> h a
     merge = BinomialHeap.merge
     -- findMin :: Ord a => h a -> a
-    findMin = undefined
+    -- TODO this implementation is not O(1)
+    findMin (BinomialHeap []) = error "undefined"
+    findMin (BinomialHeap ts) = minimum $ map (\t ->  getValue . getTree $ t) ts
     -- deleteMin :: Ord a => h a -> h a
-    deleteMin = undefined
+    deleteMin = BinomialHeap.deleteMin
 
