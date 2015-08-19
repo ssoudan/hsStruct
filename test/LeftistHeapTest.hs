@@ -24,24 +24,24 @@ import           Test.QuickCheck.Test
 import           Data.List (sort)
 
 prop_empty :: Bool
-prop_empty = isEmpty (empty :: LeftistHeap a)
+prop_empty = isEmpty (empty :: LeftistHeap Int)
 
 prop_insert_not_empty :: Ord a => [a] -> Bool
 prop_insert_not_empty xs = if (null xs) then 
                             True
                            else 
-                            not . isEmpty $ foldr insert (empty :: LeftistHeap a) xs
+                            not . isEmpty $ foldr insert (empty :: Ord a => LeftistHeap a) xs
 
 prop_findMin :: Ord a => [a] -> Bool
 prop_findMin xs = if (null xs) then 
                     True
                   else 
                     let m = minimum xs
-                    in m == (findMin $ foldr insert (empty :: LeftistHeap a) xs)
+                    in m == (findMin $ foldr insert (empty :: Ord a => LeftistHeap a) xs)
 
 prop_deleteMin :: Ord a => [a] -> Bool
 prop_deleteMin xs = let sortedXs = sort xs
-                        h = foldr insert (empty :: LeftistHeap a) xs
+                        h = foldr insert (empty :: Ord a => LeftistHeap a) xs
                         elems = extractAllElements h
                         extractAllElements E = []
                         extractAllElements t = (findMin t):extractAllElements (deleteMin t)
@@ -51,9 +51,9 @@ prop_merge_findMin :: Ord a => [a] -> [a] -> Bool
 prop_merge_findMin xs ys = if (null xs) || (null ys) then 
                             True
                            else 
-                            minimum (xs ++ ys) == (findMin $ Heap.merge (foldr insert (empty :: LeftistHeap a) xs) (foldr insert (empty :: LeftistHeap a) ys))
+                            minimum (xs ++ ys) == (findMin $ Heap.merge (foldr insert (empty :: Ord a => LeftistHeap a) xs) (foldr insert (empty :: Ord a => LeftistHeap a) ys))
 
 prop_P1 :: Ord a => [a] -> Bool
-prop_P1 xs = let t = foldr insert (empty :: LeftistHeap a) xs
+prop_P1 xs = let t = foldr insert (empty :: Ord a => LeftistHeap a) xs
               in checkP1OnLeftistHeap t
             

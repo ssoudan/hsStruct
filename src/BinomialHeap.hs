@@ -33,9 +33,9 @@ data RankedTree a = RankedTree { getRank  :: Int
                                 , getTree :: Tree a
                                 } deriving Show
 
-data BinomialHeap a = BinomialHeap [(RankedTree a)] deriving Show
+data Ord a => BinomialHeap a = BinomialHeap [(RankedTree a)] deriving Show
 
-getRankedTrees :: BinomialHeap a -> [RankedTree a]
+getRankedTrees :: Ord a => BinomialHeap a -> [RankedTree a]
 getRankedTrees (BinomialHeap ts) = ts
 
 -- for our purpose comparing on the rank is enough since there will be only one tree for each rank at max
@@ -95,13 +95,13 @@ mergeTrees a@(x:xs) b@(y:ys) =  let rankX = getRank x
 btFromList :: Ord a => [a] -> BinomialHeap a
 btFromList xs = foldr Heap.insert empty xs
 
-singleton :: a -> BinomialHeap a
+singleton :: Ord a => a -> BinomialHeap a
 singleton a = (BinomialHeap [RankedTree 0 (Node a [])])
 
 
 deleteMin :: Ord a => BinomialHeap a -> BinomialHeap a
 deleteMin (BinomialHeap []) = error "undefined"
-deleteMin (BinomialHeap ts) = let r@(RankedTree rk (Node a sts)) = minimumBy (\tt tt2 -> compare (getValue . getTree $ tt) (getValue . getTree $ tt2)) ts
+deleteMin (BinomialHeap ts) = let r@(RankedTree rk (Node _ sts)) = minimumBy (\tt tt2 -> compare (getValue . getTree $ tt) (getValue . getTree $ tt2)) ts
                                   subtrees = BinomialHeap (zipWith (\rr tt -> (RankedTree rr tt)) [0,1..(rk-1)] (reverse sts))
                                   withoutR = BinomialHeap (delete r ts)
                                in BinomialHeap.merge withoutR subtrees
@@ -124,9 +124,9 @@ deleteMin (BinomialHeap ts) = let r@(RankedTree rk (Node a sts)) = minimumBy (\t
 -- P2: There can only be either one or zero binomial trees for each order,
 --     including zero order.
 instance Heap BinomialHeap where
-    -- empty :: h a
+    -- empty :: Ord a => h a
     empty = (BinomialHeap [])
-    -- isEmpty :: h a -> Bool
+    -- isEmpty :: Ord a => h a -> Bool
     isEmpty (BinomialHeap h) = null h
     -- insert :: Ord a => a -> h a -> h a
     insert a h = BinomialHeap.merge (singleton a) h
@@ -143,15 +143,15 @@ instance Heap BinomialHeap where
 
 --
 -- Because findMin is O(log n) in BinomialHeap, we wrap it in SavedMinBinomialHeap which recall the value of minimum
--- or compute it accross already complex operations (O(log n)) so that findMin becomes O(1)
+-- or compute it across already complex operations (O(log n)) so that findMin becomes O(1)
 --
-data SavedMinBinomialHeap a = SavedMinBinomialHeap { getMin :: a, getHeap :: BinomialHeap a }
+data Ord a => SavedMinBinomialHeap a = SavedMinBinomialHeap { getMin :: a, getHeap :: BinomialHeap a }
                             | EmptyHeap deriving Show
 
-s2b :: SavedMinBinomialHeap a -> BinomialHeap a
+s2b :: Ord a => SavedMinBinomialHeap a -> BinomialHeap a
 s2b EmptyHeap = Heap.empty
 
-b2s :: a -> BinomialHeap a -> SavedMinBinomialHeap a
+b2s :: Ord a => a -> BinomialHeap a -> SavedMinBinomialHeap a
 b2s m h = SavedMinBinomialHeap m h
 
 fromList :: Ord a => [a] -> SavedMinBinomialHeap a
@@ -164,11 +164,11 @@ fromList xs = let h = btFromList xs
 instance Heap SavedMinBinomialHeap where
 
     -- O(1)
-    -- empty :: h a
+    -- empty :: Ord a => h a
     empty = EmptyHeap
 
     -- O(1)
-    -- isEmpty :: h a -> Bool
+    -- isEmpty :: Ord a => h a -> Bool
     isEmpty EmptyHeap = True
     isEmpty _ = False
 
@@ -216,4 +216,4 @@ checkP2OnSavedMinBinomialHeap EmptyHeap = True
 checkP2OnSavedMinBinomialHeap (SavedMinBinomialHeap _ (BinomialHeap ts)) = let ranks = sort $ map getRank ts
                                                                             in failOnDuplicate (head ranks) (tail ranks)
                                                                          where failOnDuplicate _ [] = True
-                                                                               failOnDuplicate a (t:ts) = a /= t && failOnDuplicate t ts
+                                                                               failOnDuplicate a (tt:tts) = a /= tt && failOnDuplicate tt tts

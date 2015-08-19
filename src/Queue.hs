@@ -14,7 +14,7 @@ Portability :  portable
 module Queue where
 
 import qualified Data.Foldable as F
-import           Data.Monoid
+-- import           Data.Monoid
 
 -- | A FIFO queue
 class Queue q where
@@ -27,12 +27,12 @@ class Queue q where
 
     size :: q a -> Int
 
-instance Queue a => F.Foldable a where
-     foldMap f q = if isEmpty q
-                    then
-                        mempty
-                    else
-                        f (Queue.head q) `mappend` F.foldMap f (Queue.tail q)
+-- instance {-# OVERLAPPING #-} Queue a => F.Foldable a where
+--      foldMap f q = if isEmpty q
+--                     then
+--                         mempty
+--                     else
+--                         f (Queue.head q) `mappend` F.foldMap f (Queue.tail q)
 
 instance Queue a => Functor a where
      fmap f q = if isEmpty q 

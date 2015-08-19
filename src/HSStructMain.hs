@@ -84,3 +84,8 @@ main = do
         batchedDequeue = BatchedDequeue.buildBatchedDequeue rs
     putStrLn $ "BatchedDequeue size: " ++ show (Dequeue.size batchedDequeue)
     --microbench "BatchedDequeue.head " $ Dequeue.head batchedDequeue
+
+
+
+
+

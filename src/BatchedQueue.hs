@@ -12,9 +12,17 @@ Portability :  portable
 
 module BatchedQueue where
 
+import qualified Data.Foldable as F
 import           Queue
 
 data BatchedQueue a = Q [a] [a] deriving (Show)
+
+instance F.Foldable BatchedQueue where
+     foldMap f q = if isEmpty q
+                    then
+                        mempty
+                    else
+                        f (Queue.head q) `mappend` F.foldMap f (Queue.tail q)
 
 -- | BatchedQueue as an example of FIFO queue
 --

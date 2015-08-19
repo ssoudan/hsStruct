@@ -118,9 +118,9 @@ instance Show a => Show (LeftistHeap a) where
 -- O(log n): merge
 -- O(log n): deleteMin
 instance Heap LeftistHeap where
-    -- empty :: LeftistHeap a
+    -- empty :: Ord a => LeftistHeap a
     empty = E
-    -- isEmpty :: LeftistHeap a -> Bool
+    -- isEmpty :: Ord a => LeftistHeap a -> Bool
     isEmpty E = True
     isEmpty _ = False
     -- insert :: Ord a => a -> LeftistHeap a -> LeftistHeap a

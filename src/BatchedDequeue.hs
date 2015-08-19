@@ -1,8 +1,8 @@
 {-# LANGUAGE RankNTypes #-}
 {- |
 Module      :  BatchedDequeue
-Description :  ... 
-Copyright   :  (c) Sebastien Soudan 
+Description :  ...
+Copyright   :  (c) Sebastien Soudan
 License     :  APLv2
 
 Maintainer  :  sebastien.soudan@gmail.com
@@ -13,9 +13,17 @@ Portability :  portable
 
 module BatchedDequeue where
 
-import          Dequeue
+import qualified Data.Foldable as F
+import           Dequeue
 
 data BatchedDequeue a = BDQ [a] [a] deriving (Show)
+
+instance F.Foldable BatchedDequeue where
+     foldMap f q = if isEmpty q
+                    then
+                        mempty
+                    else
+                        f (Dequeue.head q) `mappend` F.foldMap f (Dequeue.tail q)
 
 splitHalf :: forall a. [a] -> ([a], [a])
 splitHalf l = splitAt ((length l) `div` 2) l
@@ -29,23 +37,23 @@ instance Dequeue BatchedDequeue where
     isEmpty _           = False
 
     -- cons
-    cons x (BDQ [] [])  = BDQ [x] []            -- for the sake of the invariant 
-    cons x (BDQ [] [r]) = BDQ [x] [r]           -- for the sake of the invariant 
-    cons x (BDQ [f] []) = BDQ [x] [f]           -- for the sake of the invariant 
+    cons x (BDQ [] [])  = BDQ [x] []            -- for the sake of the invariant
+    cons x (BDQ [] [r]) = BDQ [x] [r]           -- for the sake of the invariant
+    cons x (BDQ [f] []) = BDQ [x] [f]           -- for the sake of the invariant
     cons x (BDQ f r)    = BDQ (x:f) r           -- f and r are not empty
     -- head
-    head (BDQ [] [])    = error "empty queue" 
+    head (BDQ [] [])    = error "empty queue"
     head (BDQ (x:_) _)  = x
     head (BDQ [] r)     = Prelude.last r
     -- tail
     tail (BDQ [] [])    = error "empty queue"
-    tail (BDQ [_] r)    = let (r1, r2) = splitHalf r    -- that the case were we want to split and 
+    tail (BDQ [_] r)    = let (r1, r2) = splitHalf r    -- that the case were we want to split and
                            in BDQ (reverse r2) r1       -- reverse half of the other queue
-    tail (BDQ (_:f) r)  = BDQ f r 
-    tail (BDQ [] r)     = let (r1, r2) = splitHalf r            -- that the case were we want to split and 
+    tail (BDQ (_:f) r)  = BDQ f r
+    tail (BDQ [] r)     = let (r1, r2) = splitHalf r            -- that the case were we want to split and
                            in BDQ (drop 1 (reverse r2)) r1      -- reverse half of the other queue
     -- snoc
-    snoc (BDQ [] []) x  = BDQ [] [x]            -- for the sake of the invariant 
+    snoc (BDQ [] []) x  = BDQ [] [x]            -- for the sake of the invariant
     snoc (BDQ [f] []) x = BDQ [f] [x]           -- for the sake of the invariant
     snoc (BDQ [] [r]) x = BDQ [r] [x]           -- for the sake of the invariant
     snoc (BDQ f r) x    = BDQ f (x:r)           -- f and r are not empty

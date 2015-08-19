@@ -13,8 +13,8 @@ Portability :  portable
 
 module Dequeue where
 
-import qualified Data.Foldable as F
-import           Data.Monoid
+-- import qualified Data.Foldable as F
+-- import           Data.Monoid
 
 -- Double-ended queue:
 -- [Purely functional Data Structures, Okasaki, p.44]
@@ -54,12 +54,12 @@ class Dequeue dq where
 
     size :: dq a -> Int
 
-instance Dequeue a => F.Foldable a where
-     foldMap f q = if isEmpty q
-                    then
-                        mempty
-                    else
-                        f (Dequeue.head q) `mappend` F.foldMap f (Dequeue.tail q)
+-- instance Dequeue a => F.Foldable a where
+--      foldMap f q = if isEmpty q
+--                     then
+--                         mempty
+--                     else
+--                         f (Dequeue.head q) `mappend` F.foldMap f (Dequeue.tail q)
 
 instance Dequeue a => Functor a where
      fmap f q = if isEmpty q 

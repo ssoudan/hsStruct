@@ -24,20 +24,20 @@ import           Test.QuickCheck.Test
 import           Data.List (sort)
 
 prop_empty :: Bool
-prop_empty = isEmpty (empty :: SavedMinBinomialHeap a)
+prop_empty = isEmpty (empty :: (SavedMinBinomialHeap Int))
 
 prop_insert_not_empty :: Ord a => [a] -> Bool
 prop_insert_not_empty xs = if (null xs) then 
                             True
                            else 
-                            not . isEmpty $ foldr insert (empty :: SavedMinBinomialHeap a) xs
+                            not . isEmpty $ foldr insert (empty :: Ord a => SavedMinBinomialHeap a) xs
 
 prop_findMin :: Ord a => [a] -> Bool
 prop_findMin xs = if (null xs) then 
                     True
                   else 
                     let m = minimum xs
-                    in m == (findMin $ foldr insert (empty :: SavedMinBinomialHeap a) xs)
+                    in m == (findMin $ foldr insert (empty :: Ord a => SavedMinBinomialHeap a) xs)
 
 prop_deleteMin :: Ord a => [a] -> Bool
 prop_deleteMin xs = let sortedXs = sort xs
@@ -51,7 +51,7 @@ prop_merge_findMin :: Ord a => [a] -> [a] -> Bool
 prop_merge_findMin xs ys = if (null xs) || (null ys) then 
                             True
                            else 
-                            minimum (xs ++ ys) == (findMin $ Heap.merge (foldr insert (empty :: SavedMinBinomialHeap a) xs) (foldr insert (empty :: SavedMinBinomialHeap a) ys))
+                            minimum (xs ++ ys) == (findMin $ Heap.merge (foldr insert (empty :: Ord a => SavedMinBinomialHeap a) xs) (foldr insert (empty :: Ord a => SavedMinBinomialHeap a) ys))
 
 prop_P1 :: Ord a => [a] -> Bool
 prop_P1 xs = let t = fromList xs
