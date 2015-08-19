@@ -13,7 +13,7 @@ Portability :  portable
 
 module Queue where
 
-import qualified Data.Foldable as F
+-- import qualified Data.Foldable as F
 -- import           Data.Monoid
 
 -- | A FIFO queue
