@@ -33,7 +33,7 @@ data RankedTree a = RankedTree { getRank  :: Int
                                 , getTree :: Tree a
                                 } deriving Show
 
-data Ord a => BinomialHeap a = BinomialHeap [(RankedTree a)] deriving Show
+data BinomialHeap a = BinomialHeap [(RankedTree a)] deriving Show
 
 getRankedTrees :: Ord a => BinomialHeap a -> [RankedTree a]
 getRankedTrees (BinomialHeap ts) = ts
@@ -145,7 +145,7 @@ instance Heap BinomialHeap where
 -- Because findMin is O(log n) in BinomialHeap, we wrap it in SavedMinBinomialHeap which recall the value of minimum
 -- or compute it across already complex operations (O(log n)) so that findMin becomes O(1)
 --
-data Ord a => SavedMinBinomialHeap a = SavedMinBinomialHeap { getMin :: a, getHeap :: BinomialHeap a }
+data SavedMinBinomialHeap a = SavedMinBinomialHeap { getMin :: a, getHeap :: BinomialHeap a }
                             | EmptyHeap deriving Show
 
 s2b :: Ord a => SavedMinBinomialHeap a -> BinomialHeap a

@@ -97,7 +97,7 @@ instance Show a => Show (LeftistHeap a) where
             where
                 show2 :: Show a => LeftistHeap a -> String
                 show2 E = " "
-                show2 (T _ a l r) = (fill ll) ++ showA ++ (fill lr)
+                show2 (T _ a l r) = fill ll ++ showA ++ fill lr
                                 where
                                     ll = treeWidth l
                                     lr = treeWidth r
@@ -124,7 +124,7 @@ instance Heap LeftistHeap where
     isEmpty E = True
     isEmpty _ = False
     -- insert :: Ord a => a -> LeftistHeap a -> LeftistHeap a
-    insert a t = LeftistHeap.merge (makeT a E E) t
+    insert a = LeftistHeap.merge (makeT a E E)
     -- merge :: Ord a => LeftistHeap a -> LeftistHeap a -> LeftistHeap a
     merge = LeftistHeap.merge
     -- findMin :: Ord a => LeftistHeap a -> a
