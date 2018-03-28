@@ -34,10 +34,11 @@ library
 executable hsStructMain
   main-is:           HSStructMain.hs
   other-modules:     AVLTree, BSTree, BatchedDequeue, BatchedQueue,
-                     Dequeue, Queue
+                     Dequeue, Queue, Graph, RDG
   -- other-extensions:
   build-depends:     base >=4.6 && <4.9,
                      murmur-hash >= 0.1.0,
+                     containers >= 0.5.5,
                      microbench
   default-language:  Haskell2010
   -- Directories containing source files.

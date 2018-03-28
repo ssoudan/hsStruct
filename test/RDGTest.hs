@@ -20,10 +20,23 @@
 module RDGTest where
 
 import           RDG
+import           Graph
 import qualified Data.Foldable        as F
 import           Data.Monoid
 import           Test.QuickCheck.Test
 
 prop_empty :: Bool
-prop_empty = let (g :: RDG) = buildGraph [] []
+prop_empty = let (g :: RDG String String) = buildGraph [] []
              in isEmptyRDG g
+
+prop_cc :: Bool
+prop_cc = let g = buildGraph ["A", "B", "C"] [("A", "B", "AB"), ("B", "C", "BC")]
+              cc = connectedComp g
+              v = Prelude.map vertexData $ vertices cc
+           in v == [1, 1, 1]
+
+prop_cc2 :: Bool
+prop_cc2 = let g = buildGraph ["A", "B", "C"] [("A", "B", "AB")]
+               cc = connectedComp g
+               v = Prelude.map vertexData $ vertices cc
+            in v == [1, 1, 3]

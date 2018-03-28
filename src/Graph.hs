@@ -18,6 +18,8 @@ Portability :  portable
 
 module Graph where
 
+import Data.Functor
+
 -- from [GraphX: A resilient distributed graph system on Spark, 2013]
 --
 -- class Graph[V, E] {
@@ -61,6 +63,13 @@ data Vertex v = Vertex { vertexId   :: VertexID
                        , vertexData :: v
                        } deriving (Show)
 
+instance Functor Vertex where
+  fmap f (Vertex i d) = Vertex i (f d)
+
+mapV :: forall v w. (Vertex v -> w) -> Vertex v -> Vertex w
+mapV f v@(Vertex i d) = Vertex i (f v)
+
+
 --------------------------------
 
 --class Graph g where
@@ -73,10 +82,3 @@ data Vertex v = Vertex { vertexId   :: VertexID
     --mapEdges :: g -> ((VertexID, VertexID, e) -> (VertexID, VertexID, e2)) -> g2
     --updateVertices
     --aggregateNeighbors :: forall r. (RDD r VertexID Vertex) => forall a. g -> ((VertexID, Edge) -> a) -> (a -> a -> a) -> r
-
-
-
-
-
-
-

@@ -88,5 +88,7 @@ tests = [
             ]
         , testGroup "RDG: simple"
             [ testProperty "empty graph isEmpty" RDGTest.prop_empty
+            , testProperty "connectedComp graph works" RDGTest.prop_cc
+            , testProperty "connectedComp (2) graph works" RDGTest.prop_cc2
             ]
         ]

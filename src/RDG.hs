@@ -99,7 +99,7 @@ nextID rdg = (maxId rdg) + 1
 
 ----------
 
-insertVertex :: forall v e. RDG v e-> v -> (RDG v e, VertexID)
+insertVertex :: forall v e. RDG v e -> v -> (RDG v e, VertexID)
 insertVertex r d = let vId = nextID r
                        v = Vertex vId d
                        vdtp = insertVertexInVertexDataTable (vertexDataTable r) v
@@ -114,8 +114,10 @@ insertEdge r e = let eId = maxId r
                      vM = insertEdgeInVertexMap (vertexMap r) e
                   in RDG eId eT vdTP vM
 
-mapV :: () -> forall v w e. (v -> w) -> RDG v e -> RDG w e
-mapV f g = undefined
+-- TODO check how to implement this with mapOnAllVertices
+mapV :: forall v w e. ((Vertex v) -> w) -> RDG v e -> RDG w e
+mapV f g =  let VertexDataTable v = vertexDataTable g
+             in RDG (maxId g) (edgeTable g) (VertexDataTable (Map.map (Prelude.map (Graph.mapV f)) v)) (vertexMap g)
 
 -- TODO use Dlist
 buildFromList :: forall v e. [v] -> (RDG v e, [VertexID])
@@ -159,32 +161,31 @@ buildGraph :: forall v e. Eq v => [v] -> [(v, v, e)] -> RDG v e
 buildGraph nodes edges = let (g, resolvedEdges) = addEdges nodes edges
                           in Prelude.foldl (\ r e -> case e of Nothing -> r
                                                                Just ee -> insertEdge r ee) g resolvedEdges
-
-vertices :: forall v e. RDG v e -> VertexDataTable v
-vertices rdg = vertexDataTable rdg
-
 edges :: forall v e. RDG v e -> [Edge e]
-edges rdg = let es = edgeTable rdg
-             in concat $ Prelude.map snd $ Map.toList es
+edges rdg = let es = Map.toList $ edgeTable rdg
+             in concatMap snd es
 
+vertices :: forall v e. RDG v e -> [Vertex v]
+vertices g = let VertexDataTable v = vertexDataTable g
+              in concatMap snd $ Map.toList v
 
--- | apply message generate function (f) to a VertexDataTable (r)
--- TODO: each partition could be processed independently
+-- | apply message generating function (f) to a VertexDataTable (r)
+-- TODO: each partition could be processed concurrently (different thread?)
 instance RDD (VertexDataTable v) ID (Vertex v) where
   map :: forall v m. Message m => (VertexDataTable v) -> (Vertex v -> (ID, m)) -> [(ID, m)]
-  map (VertexDataTable r) f = let vertices = concat $ Prelude.map snd $ Map.toList r
+  map (VertexDataTable r) f = let vertices = concatMap snd $ Map.toList r
                                in Prelude.map f vertices
 
 ---------------------------------------------------------------------------------
 
-type InitialMsg = forall m. m
-type VProgF     = forall v m. (Vertex v, m) -> Vertex v
-type SendMsgF   = forall e  m. Edge e-> Maybe m
-type CombineF   = forall m. (m, m) -> m
+type InitialMsg v m = (Vertex v) -> m
+type VProgF v m = (Vertex v, m) -> v
+type SendMsgF v e m = Vertex v -> Edge e -> Vertex v -> Maybe m
+type CombineF m = (m, m) -> m
 
 
-class Pregel g where
-  compute :: g -> InitialMsg -> VProgF -> SendMsgF ->  CombineF -> g
+class Pregel g v e where
+  compute :: forall m. g v e-> InitialMsg v m -> VProgF v m -> SendMsgF v e m -> CombineF m -> g v e
 
 -- | apply a f on all the vertices of a graph
 --
@@ -192,12 +193,10 @@ class Pregel g where
 -- > mapOnAllVertices g (\(Vertex id v) -> Vertex id (v ++ "Z"))
 -- [(2, Vertex {vertexId = 2, vertexData = "BZ"}), (1, Vertex {vertexId = 1, vertexData = "AZ"}), (3, Vertex {vertexId = 3, vertexData = "CZ"})]
 mapOnAllVertices :: forall v e a. RDG v e -> (Vertex v -> a) -> [(VertexID, a)]
-mapOnAllVertices graph f = F.foldMap g vs
-        where (VertexDataTable vs) = (vertices graph)
-              g = Prelude.map (\ v@(Vertex vid _) -> (vid, (f v)))
+mapOnAllVertices graph f = Prelude.map (\ v@(Vertex vid _) -> (vid, (f v))) vs
+        where vs = vertices graph
 
-
-applyVprogF :: forall v m. [(VertexID, m)] -> VProgF -> VertexDataTable v -> VertexDataTable v
+applyVprogF :: forall v m. [(VertexID, m)] -> VProgF v m -> VertexDataTable v -> VertexDataTable v
 applyVprogF msgs vprogf (VertexDataTable vdt) =
   let oldVertices = F.foldMap id vdt
       -- newVertices :: forall v. [Vertex v]
@@ -205,13 +204,13 @@ applyVprogF msgs vprogf (VertexDataTable vdt) =
       -- doUpdate :: forall v. Vertex v -> Vertex v
       doUpdate v@(Vertex vid _) =
         case lookup vid msgs of
-          Just message -> vprogf (v, message)
+          Just message -> Vertex vid (vprogf (v, message))
           Nothing -> v -- no message for this vertex
   in Prelude.foldl insertVertexInVertexDataTable (VertexDataTable Map.empty) newVertices
 
 
 -- | updateGraph replaces vertex in a graph
-updateGraph :: forall v e a . [(VertexID, a)] -> RDG v e -> VProgF -> RDG v e
+updateGraph :: forall m v e. [(VertexID, m)] -> RDG v e -> VProgF v m -> RDG v e
 updateGraph msgs graph vprogf =
   RDG
   { maxId = maxId graph
@@ -223,18 +222,22 @@ updateGraph msgs graph vprogf =
 sortAndGroup assocs = Map.fromListWith (++) [(k, [v]) | (k, v) <- assocs]
 
 -- TODO: look at https://hackage.haskell.org/package/base-4.11.0.0/docs/Data-List.html#g:7
-onMsgs :: forall m . CombineF -> (VertexID, [Maybe m]) -> Maybe (VertexID, m)
+onMsgs :: forall m . CombineF m -> (VertexID, [Maybe m]) -> Maybe (VertexID, m)
 onMsgs combinef (k,v) =
   let l = Data.Maybe.catMaybes v
    in case l of [] -> Nothing
                 otherwise -> Just (k, Prelude.foldl1 (curry combinef) l)
 
-aggregateNeighbors :: forall v e m . RDG v e -> SendMsgF -> CombineF -> [(VertexID, m)]
+aggregateNeighbors :: forall v e m . RDG v e -> SendMsgF v e m -> CombineF m -> [(VertexID, m)]
 aggregateNeighbors graph sendMsgf combinef =
   let e = edges graph
-      msgs :: forall m . [(VertexID, Maybe m)]
-      msgs = Prelude.map (destinationId &&& sendMsgf) e
-      groupedMsgs :: forall m . Map.Map VertexID [Maybe m]
+      vs = Prelude.map (\v -> (vertexId v, v)) $ vertices graph
+      send e = sendMsgf (fromJust s) e (fromJust d) -- TODO: not too pretty
+               where s = lookup (sourceId e) vs
+                     d = lookup (destinationId e) vs
+      -- msgs :: [(VertexID, Maybe m)]
+      msgs = Prelude.map (destinationId &&& send) e -- we send the message to the destination vertex
+      -- groupedMsgs :: Map.Map VertexID [Maybe m]
       groupedMsgs = sortAndGroup msgs
    in Data.Maybe.catMaybes $
     Prelude.map
@@ -247,7 +250,11 @@ aggregateNeighbors graph sendMsgf combinef =
 -- [ ] need to actually send messages, don't we? - not sure where... need to read the paper again
 --     [√] sort of emulated that part
 -- [√] need a function to aggregate messages
--- [ ] implement some algorithms from https://amplab.cs.berkeley.edu/wp-content/uploads/2014/09/graphx.pdf
+-- [√] implement some algorithms from https://amplab.cs.berkeley.edu/wp-content/uploads/2014/09/graphx.pdf
+-- [ ] more tests
+-- [ ] split the processing on the partitions
+-- [ ] cleanup
+
 
 -- | compute_ runs a computation on a graph
 -- Code from spark implementation:
@@ -269,9 +276,9 @@ aggregateNeighbors graph sendMsgf combinef =
 --      i = i+1
 --    }
 --  }
-compute_ :: forall v e. RDG v e -> InitialMsg -> VProgF -> SendMsgF -> CombineF -> RDG v e
+compute_ :: forall m v e. RDG v e -> InitialMsg v m -> VProgF v m -> SendMsgF v e m -> CombineF m -> RDG v e
 compute_ graph initialMsg vprogf sendMsgf combinef =
-  let msgs = mapOnAllVertices graph (const initialMsg)
+  let msgs = mapOnAllVertices graph initialMsg
    in doCompute msgs graph
   where
     doCompute m g =
@@ -281,10 +288,27 @@ compute_ graph initialMsg vprogf sendMsgf combinef =
            then newGraph
            else doCompute newMsgs newGraph
 
-instance Pregel (RDG v e) where
+instance Pregel RDG v e where
   compute = compute_
 
+-- | connectedComp computes the connected components of a graph
+-- by returning a graph where vertices are labelled with their class
+connectedComp :: forall v e. RDG v e -> RDG VertexID e
+connectedComp g = let g' = RDG.mapV (\v -> vertexId v) g
+                      initialMsg :: InitialMsg v VertexID
+                      initialMsg = (\v -> vertexId v)
+                      vprogF :: (Vertex VertexID, VertexID) -> VertexID
+                      vprogF = (\ (v, m) -> min (vertexData v) m)
+                      sendMsgF :: Vertex VertexID -> Edge e -> Vertex VertexID -> Maybe VertexID
+                      sendMsgF s _ d = if (vertexData s < vertexData d) then
+                                      Just $ vertexData s
+                                    else
+                                      Nothing
+                      combineF :: (VertexID, VertexID) -> VertexID
+                      combineF = uncurry min
+                  in compute g' initialMsg vprogF sendMsgF combineF
 
+-- From Pregel paper:
 -- def ConnectedComp(g: Graph[V, E]) = {
 --   g = g.mapV(v => v.id) // Initialize vertices
 --   def vProg(v: Id, m: Id): Id = {

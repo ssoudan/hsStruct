@@ -28,6 +28,8 @@ import qualified Dequeue
 import qualified Queue
 import           Data.Digest.Murmur32
 import           Microbench
+import           Graph
+import           RDG
 
 buildBatchedQueue :: Int -> BatchedQueue.BatchedQueue Integer
 buildBatchedQueue n = let rs = [ (toInteger . asWord32 . hash32) m | m <- [1..n] ]
@@ -54,6 +56,11 @@ searchBSTree :: BSTree.BSTree Integer -> Int -> Integer
 searchBSTree tree n = let rs = [ (toInteger . asWord32 . hash32) m | m <- [500000..n] ]
                           (a,b) = span (`BSTree.elemTree` tree) rs
                        in sum a + sum b
+
+connectedCompF = let g = buildGraph ["A", "B", "C"] [("A", "B", "AB"), ("B", "C", "BC")]
+                     cc = connectedComp g
+                     v = Prelude.map vertexData $ vertices cc
+                  in v
 
 main :: IO ()
 main = do
@@ -84,6 +91,8 @@ main = do
         batchedDequeue = BatchedDequeue.buildBatchedDequeue rs
     putStrLn $ "BatchedDequeue size: " ++ show (Dequeue.size batchedDequeue)
     --microbench "BatchedDequeue.head " $ Dequeue.head batchedDequeue
+
+    putStrLn $ "connected comp: " ++ show (connectedCompF)
 
 
 
